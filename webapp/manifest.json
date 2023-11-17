@@ -1,0 +1,148 @@
+{
+  "_version": "1.49.0",
+  "sap.app": {
+    "id": "materialsoverview",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:basic",
+      "version": "1.10.1",
+      "toolsId": "49e3e4fc-197b-41d3-ba73-5550c57976b9"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/sap/opu/odata/tqa/MATERIALS_OVERVIEW_SRV/",
+        "type": "OData",
+        "settings": {
+          "annotations": [
+            "/TQA/OD_MATERIALS_OVERV_ANNO_MDL",
+            "annotation"
+          ],
+          "localUri": "localService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      },
+      "/TQA/OD_MATERIALS_OVERV_ANNO_MDL": {
+        "uri": "/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Annotations(TechnicalName='%2FTQA%2FOD_MATERIALS_OVERV_ANNO_MDL',Version='0001')/$value/",
+        "type": "ODataAnnotation",
+        "settings": {
+          "localUri": "localService//TQA/OD_MATERIALS_OVERV_ANNO_MDL.xml"
+        }
+      },
+      "annotation": {
+        "type": "ODataAnnotation",
+        "uri": "annotations/annotation.xml",
+        "settings": {
+          "localUri": "annotations/annotation.xml"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "dependencies": {
+      "minUI5Version": "1.116.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.f": {},
+        "sap.suite.ui.generic.template": {},
+        "sap.ui.comp": {},
+        "sap.ui.generic.app": {},
+        "sap.ui.table": {},
+        "sap.ushell": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "materialsoverview.i18n.i18n"
+        }
+      },
+      "": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {}
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "async": true,
+        "viewPath": "materialsoverview.view",
+        "controlAggregation": "pages",
+        "controlId": "app",
+        "clearControlAggregation": false
+      },
+      "routes": [
+        {
+          "name": "overview",
+          "pattern": "",
+          "target": [
+            "overview"
+          ]
+        },
+        {
+          "name": "NotFound",
+          "pattern": "NotFound",
+          "target": "NotFound"
+        }
+      ],
+      "targets": {
+        "overview": {
+          "viewId": "overview",
+          "viewLevel": 1,
+          "viewName": "Overview"
+        },
+        "NotFound": {
+          "viewName": "NotFound",
+          "viewType": "XML",
+          "transition": "show",
+          "clearControlAggregation": false,
+          "viewId": "NotFound"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "materialsoverview.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "App"
+    }
+  }
+}
