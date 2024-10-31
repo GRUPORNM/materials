@@ -1,0 +1,83 @@
+<mvc:View controllerName="materialsoverview.controller.OverviewDetail"
+    xmlns:mvc="sap.ui.core.mvc" displayBlock="true"
+    xmlns:ux="sap.uxap"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:core="sap.ui.core"
+    xmlns:smartTable="sap.ui.comp.smarttable">
+    <Page id="requestDetailPage" showHeader="false" floatingFooter="true" title="{bp} | {request_description}" showNavButton="false" navButtonPress="onNavBack">
+        <ux:ObjectPageLayout id="ObjectPageLayout" showTitleInHeaderContent="false" alwaysShowContentHeader="false" preserveHeaderStateOnScroll="false" headerContentPinnable="false" isChildPage="false" upperCaseAnchorBar="false" showAnchorBar="false" toggleHeaderOnTitleClick="false">
+            <ux:sections>
+                <ux:ObjectPageSection titleUppercase="false" title="{i18n>generalInfo}">
+                    <ux:subSections>
+                        <ux:ObjectPageSubSection>
+                            <ux:blocks>
+                                <form:SimpleForm id="SimpleFormDetailDrivers" layout="ColumnLayout" columnsM="2" columnsL="3" columnsXL="4">
+                                    <form:content>
+                                        <Label text="{i18n>NumerodoMaterial}" />
+                                        <Text text="{bp_matnr}" />
+
+                                        <Label text="{i18n>CriadoEm}" />
+                                        <Text text="{
+				path: 'ersda',
+				type: 'sap.ui.model.type.Date',
+				formatOptions: {
+					 pattern: 'dd.MM.yyyy'
+				}
+			}" />
+
+                                        <Label text="{i18n>UltimaAlteracao}" />
+                                        <Text text="{
+				path: 'laeda',
+				type: 'sap.ui.model.type.Date',
+				formatOptions: {
+					 pattern: 'dd.MM.yyyy'
+				}
+			}"/>
+
+                                        <Label text="{i18n>UnidadadeDeMedida}" />
+                                        <Text text="{meins}" />
+
+                                        <Label text="{i18n>Descricao}" />
+                                        <Text text="{maktx}" />
+                                    </form:content>
+                                </form:SimpleForm>
+                            </ux:blocks>
+                        </ux:ObjectPageSubSection>
+                    </ux:subSections>
+                </ux:ObjectPageSection>
+
+                <!-- <ux:ObjectPageSection titleUppercase="false" title="{i18n>Lotes}">
+                    <ux:subSections>
+                        <ux:ObjectPageSubSection >
+                            <ux:blocks>
+                                <smartTable:SmartTable showRowCount="true" entitySet="xTQAxBATCH_STOCK" persistencyKey="xTQAxBATCH_STOCK::Table::Personalization" tableBindingPath="to_batchStock" placeToolbarInTable="true" useOnlyOneSolidToolbar="true" enableAutoBinding="true" tableType="ResponsiveTable"/>
+                            </ux:blocks>
+                        </ux:ObjectPageSubSection>
+                    </ux:subSections>
+                </ux:ObjectPageSection> -->
+
+                <ux:ObjectPageSection titleUppercase="false" title="{i18n>Documentacao}">
+                    <ux:subSections>
+                        <ux:ObjectPageSubSection>
+                            <ux:blocks>
+                                <List id="list" enableBusyIndicator="true" growing="true" mode="SingleSelectLeft" items="{to_dataSheets}" includeItemInSelection="true">
+                                    <headerToolbar>
+                                        <OverflowToolbar>
+                                            <ToolbarSpacer />
+                                            <Button text="{i18n>viewDocument}" type="Emphasized" press="onOpenImage"/>
+                                            <Button text="{i18n>addDocument}" press="handleAddAttachmentPress"/>
+                                            <Button text="{i18n>deleteDocument}" press="onDeleteAttachment"/>
+                                        </OverflowToolbar>
+                                    </headerToolbar>
+                                    <StandardListItem title="{sheet_material}" description="{sheet_type_desc}" icon="sap-icon://pdf-attachment" iconDensityAware="false" iconInset="false" type="Active"/>
+                                </List>
+                            </ux:blocks>
+                        </ux:ObjectPageSubSection>
+                    </ux:subSections>
+                </ux:ObjectPageSection>
+            </ux:sections>
+        </ux:ObjectPageLayout>
+    </Page>
+</mvc:View>

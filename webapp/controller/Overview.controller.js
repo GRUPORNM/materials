@@ -10,31 +10,23 @@ sap.ui.define([
                 var oViewModel = new JSONModel({
                     busy: false,
                     delay: 0,
-                    oStandard: "maktx",
+                    oStandard: "bp_matnr,maktx",
                     oSmartTableView: "",
                     variantInput: "Standard"
                 });
-                sessionStorage.setItem("goToLaunchpad", "X");
+
                 this.setModel(oViewModel, "Main");
 
-                var fnSetAppNotBusy = function () {
-                    oViewModel.setProperty("/busy", false);
-                    oViewModel.setProperty("/delay", 0);
-                };
-
-                // this.getOwnerComponent().getModel().metadataLoaded().then(fnSetAppNotBusy.bind(this));
-                // this.getOwnerComponent().getModel().attachMetadataFailed(fnSetAppNotBusy);
+                sessionStorage.setItem("goToLaunchpad", "X");
                 this.getRouter().attachRouteMatched(this.getUserAuthentication, this);
             },
 
             onAfterRendering: function () {
-                //DEPLOY
                 var that = this;
                 sessionStorage.setItem("goToLaunchpad", "X");
                 window.addEventListener("message", function (event) {
                     var data = event.data;
-                    if(data.action == "goToMainPage")
-                    {
+                    if (data.action == "goToMainPage") {
                         that.onNavBack();
                     }
                 });
@@ -56,21 +48,21 @@ sap.ui.define([
             },
 
             onStartVariants: function () {
-                var that = this;
-                var oModel = this.getModel("vModel");
+                var that = this,
+                    oModel = this.getModel("vModel");
+
                 oModel.read("/xTQAxUSR_VARIANTS_DD", {
                     success: function (oData) {
                         var oResults = oData.results;
                         oResults.forEach(element => {
                             if (element.v_default) {
-                                // that.byId("variantInput").setValue(element.v_name);
                                 that.getModel("Main").setProperty("/variantInput", element.v_name)
-
                                 that.getModel("Main").setProperty("/selectedVariant", element.variant_id);
+
                                 if (element.variant_id != "Main") {
                                     var visibleInFilterBar = JSON.parse(atob(element.fbar_settings));
                                     that.onUpdateFilterBar(visibleInFilterBar);
-                                    // that.byId("smartTableMaterials").setInitiallyVisibleFields(that.getModel("Main").getProperty("/oStandard"));
+
                                     var allFieldsInVariant = JSON.parse(atob(element.stable_settings));
                                     var allNames = allFieldsInVariant.map(function (obj) {
                                         return obj.name;
@@ -91,32 +83,22 @@ sap.ui.define([
                         });
                     },
                     error: function (oError) {
-                        // Erro durante a operação
+
                     }
                 });
             },
 
             onBuildSmartTable: function () {
-
                 var oOldSmartTable = sap.ui.getCore().byId("smartTableMaterials");
                 if (oOldSmartTable) {
                     oOldSmartTable.destroy();
                 }
 
-                // Verificar se a SmartTable foi destruída corretamente
                 var oDestroyedSmartTable = sap.ui.getCore().byId("smartTableMaterials");
                 if (!oDestroyedSmartTable) {
-                    // Supondo que "this.getView()" retorne a view onde você quer adicionar a SmartTable
-                    var oView = this.getView();
-                    // Restante do seu código para criar uma nova SmartTable
+                    var oView = this.getView(),
+                        oModel = this.getModel("Main");
 
-                    // Supondo que "this.getView()" retorne a view onde você quer adicionar a SmartTable
-                    var oView = this.getView();
-
-                    // Acessar o modelo que contém o array de campos visíveis iniciais
-                    var oModel = this.getModel("Main");
-
-                    // Criar a nova SmartTable
                     var oSmartTable = new sap.ui.comp.smarttable.SmartTable({
                         id: "smartTableMaterials",
                         entitySet: "xTQAxMATERIALS_DD",
@@ -127,36 +109,49 @@ sap.ui.define([
                         enableAutoBinding: true,
                         initialise: function () {
                             this.onSTinitialise.bind(this);
+                            var oTable = oSmartTable.getTable();
 
-                            // Anexar evento selectionChange
+                            oTable.attachUpdateFinished(function () {
+                                var oItems = oTable.getItems();
+                                if (oItems.length > 0) {
+
+                                    oItems.forEach(oItem => {
+                                        if (oItem instanceof sap.m.ColumnListItem) {
+                                            oItem.setType("Navigation");
+                                            oItem.attachPress(this.onPressOverViewDetail.bind(this));
+                                        }
+                                    });
+                                }
+
+                            }.bind(this));
 
                         }.bind(this),
                         beforeRebindTable: this.onBeforeRebindTable.bind(this),
                         initiallyVisibleFields: oModel.getProperty("/oSmartTableView")
                     }).addStyleClass("sapUiSmallMarginTop");
 
-                    // Adicionar a SmartTable ao seu layout, View, etc.
-                    // Supondo que oAggregation é o lugar onde você quer adicionar sua SmartTable
                     var oAggregation = oView.byId("page");
                     oAggregation.setContent(oSmartTable);
 
-                    // Agora, se você quiser adicionar uma Toolbar personalizada, você pode fazer isso também.
                     var oToolbar = new sap.m.OverflowToolbar({
-                        // Sua configuração de toolbar aqui
                     });
                     oSmartTable.setCustomToolbar(oToolbar);
                 }
             },
 
-            onRouteMatched: function () {
+            onPressOverViewDetail: function (oEvent) {
+                sessionStorage.setItem("goToLaunchpad", "");
+                this.onNavigation(oEvent.getSource().getBindingContext().getPath(), "overviewdetail", "/xTQAxMATERIALS_DD");
+            },
 
+            onRouteMatched: function () {
                 this.getUserAuthentication();
+                sessionStorage.setItem("goToLaunchpad", "X");
             },
 
             onFBarInitialise: function (oEvent) {
-                //GUARDAR A VARIANT STANDARD
-                var filterGroupItems = this.byId("smartFilterBarGroups").getFilterGroupItems();
-                var activeFiltersArray = [];
+                var filterGroupItems = this.byId("smartFilterBarGroups").getFilterGroupItems(),
+                    activeFiltersArray = [];
 
                 filterGroupItems.forEach(function (item) {
                     if (item.mProperties.visibleInFilterBar) {
@@ -171,12 +166,11 @@ sap.ui.define([
             },
 
             onSTinitialise: function (oEvent) {
-                var that = this;
-                var oSmartTable = oEvent.getSource();
-                var oInnerTable = oSmartTable.getTable();
-                var aColumnData = [];
-
-                var aColumns = oInnerTable.getColumns();
+                var that = this,
+                    oSmartTable = oEvent.getSource(),
+                    oInnerTable = oSmartTable.getTable(),
+                    aColumnData = [],
+                    aColumns = oInnerTable.getColumns();
 
                 aColumns.forEach(function (oColumn) {
                     var lastIndex = oColumn.sId.lastIndexOf('-');
@@ -189,17 +183,15 @@ sap.ui.define([
                     });
                 });
 
-
                 that.getModel("Main").setProperty("/vSmartTableStandard", aColumnData);
             },
 
-
             onBeforeRebindTable: function (oEvent) {
-                var that = this;
-                var oSmartTable = oEvent.getSource();
-                var oInnerTable = oSmartTable.getTable();
-                var aNewColumnData = [];
-                var aColumns = oInnerTable.getColumns();
+                var that = this,
+                    oSmartTable = oEvent.getSource(),
+                    oInnerTable = oSmartTable.getTable(),
+                    aNewColumnData = [],
+                    aColumns = oInnerTable.getColumns();
 
                 aColumns.forEach(function (oColumn) {
                     var lastIndex = oColumn.sId.lastIndexOf('-');
@@ -215,27 +207,22 @@ sap.ui.define([
 
                 var isDifferent = this.checkArrayDifference(this.getModel("Main").getProperty("/oSmartTableView"), aNewColumnData);
                 if (isDifferent) {
-                    var oInput = this.byId("variantInput");
-                    // oInput.setValue("* " + oInput.getValue().replace(/\*/g, '').trim().replace(/\s+/g, ' ')
-                    //     + " *");
-                    // Agora activeFiltersArray contém as informações desejadas
-                    var activeFiltersJSON = JSON.stringify(aNewColumnData);
-                    var activeFiltersBtoa = btoa(activeFiltersJSON);
+                    var oInput = this.byId("variantInput"),
+                        activeFiltersJSON = JSON.stringify(aNewColumnData),
+                        activeFiltersBtoa = btoa(activeFiltersJSON);
+
                     this.getModel("Main").setProperty("/SmartTableBtoa", activeFiltersBtoa);
                 }
             },
 
             checkArrayDifference: function (a, b) {
-                // Primeiro, verifique se ambos os arrays têm o mesmo comprimento
                 if (a.length !== b.length) {
                     return false;
                 }
 
-                // Em seguida, ordene ambos os arrays (isso é necessário apenas se a ordem dos elementos não importa)
-                var sortedA = a.slice().sort();
-                var sortedB = b.slice().sort();
+                var sortedA = a.slice().sort(),
+                    sortedB = b.slice().sort();
 
-                // Agora, compare cada elemento
                 for (var i = 0; i < sortedA.length; i++) {
                     if (sortedA[i] !== sortedB[i]) {
                         return false;
@@ -245,49 +232,25 @@ sap.ui.define([
                 return true;
             },
 
-            // var filterGroupItems = this.byId("smartFilterBarGroups").getFilterGroupItems();
-
-            // filterGroupItems.forEach(oItem => {
-            //     oItem.setVisibleInFilterBar(false);
-            // });
-
-            // filterGroupItems.forEach(filterItem => {
-            //     // filterItem.mProperties.visibleInFilterBar
-            //     var itemFinded = fbSettings.some((item) => {
-            //         return item.name === filterItem.mProperties.name;
-            //     });
-            //     if (itemFinded) {
-            //         filterItem.setVisibleInFilterBar(true);
-            //     };
-            // });
-
-            // var oFilter = this.byId("smartFilterBarGroups");
-            // debugger;
-
-
             onUpdateFilterBar: function (fbSettings) {
-
                 var filterGroupItems = this.byId("smartFilterBarGroups").getFilterGroupItems();
-
 
                 this.byId("smartFilterBarGroups").clear();
 
-                // Primeiro, definir todos os itens como invisíveis na barra de filtros
                 filterGroupItems.forEach(oItem => {
                     oItem.setVisibleInFilterBar(false);
                 });
 
-                // Em seguida, faça um loop pelos itens de fbSettings para definir os visíveis e aplicar os valores
                 fbSettings.forEach(function (savedFilter) {
                     filterGroupItems.forEach(function (filterItem) {
                         if (savedFilter.name === filterItem.getName()) {
-                            filterItem.setVisibleInFilterBar(true); // Definir visível se for encontrado em fbSettings
+                            filterItem.setVisibleInFilterBar(true);
 
                             var control = filterItem.getControl();
-                            var aFilters = savedFilter.aFilters; // assumindo que isso existe no seu savedFilter
+                            var aFilters = savedFilter.aFilters;
 
                             if (aFilters && aFilters.length > 0) {
-                                var filter = aFilters[0]; // assumindo que você está lidando com apenas um filtro por item
+                                var filter = aFilters[0];
                                 if (control instanceof sap.m.Input || control instanceof sap.m.MultiInput) {
                                     control.setValue(filter.oValue1);
                                 }
@@ -297,7 +260,6 @@ sap.ui.define([
                                 else if (control instanceof sap.m.CheckBox) {
                                     control.setSelected(filter.oValue1 === "true" || filter.oValue1 === true);
                                 }
-                                // Adicione mais casos se você tiver diferentes tipos de controles
                             }
                         }
                     });
@@ -306,16 +268,12 @@ sap.ui.define([
             },
 
             onShowVariantList: function (oEvent) {
-                var that = this;
-                var oModel = this.getModel("vModel");
+                var that = this,
+                    oModel = this.getModel("vModel");
 
-                // Verifique se o popover já existe
                 if (!this._oPopover) {
                     var oList = new sap.m.List();
-
                     oList.setModel(oModel);
-
-                    // Faz o bind dos items à lista
                     oList.bindItems({
                         path: "/xTQAxUSR_VARIANTS_DD",
                         template: new sap.m.StandardListItem({
@@ -349,26 +307,23 @@ sap.ui.define([
                     });
 
                     oList.attachSelectionChange(function (oEvent) {
-                        // Primeiro, remova o estilo de seleção de todos os itens
                         this.getItems().forEach(function (item) {
                             item.removeStyleClass("sapMSelectListItemBaseSelected");
                         });
 
-                        // Agora, adicione o estilo ao item que foi realmente selecionado
                         var oListItem = oEvent.getParameter("listItem");
                         oListItem.addStyleClass("sapMSelectListItemBaseSelected");
 
-                        // Atualize o valor de 'selectedVariant' em seu modelo
-                        var oBindingContext = oListItem.getBindingContext();
-                        var selectedVariant = oBindingContext.getProperty("variant_id");
+                        var oBindingContext = oListItem.getBindingContext(),
+                            selectedVariant = oBindingContext.getProperty("variant_id");
+
                         that.getModel("Main").setProperty("/selectedVariant", selectedVariant);
-                        // Se você também quiser atualizar algum input com o nome da variante
                         that.byId("variantInput").setValue(oBindingContext.getProperty("v_name"));
 
                         if (selectedVariant != "Main") {
-                            var oObject = that.getModel("vModel").getObject(oBindingContext.sPath);
-                            var filterBarAtob = atob(oObject.fbar_settings);
-                            var filterBarArray = JSON.parse(filterBarAtob);
+                            var oObject = that.getModel("vModel").getObject(oBindingContext.sPath),
+                                filterBarAtob = atob(oObject.fbar_settings),
+                                filterBarArray = JSON.parse(filterBarAtob);
                             that.onUpdateFilterBar(filterBarArray);
 
                             var allFieldsInVariant = JSON.parse(atob(oObject.stable_settings));
@@ -421,10 +376,7 @@ sap.ui.define([
 
             onManageViews: function () {
                 if (!this._oManageDialog) {
-                    // Criar o diálogo
                     var oModel = this.getModel("vModel");
-
-                    // Search Bar
                     var oSearchBar = new sap.m.SearchField({
                         width: "100%",
                         placeholder: this.getView().getModel("i18n").getResourceBundle().getText("Search"),
@@ -436,8 +388,6 @@ sap.ui.define([
                         }
                     });
 
-
-                    // Tabela
                     var oTable = new sap.m.Table({
                         columns: [
                             new sap.m.Column({ header: new sap.m.Label({ text: this.getView().getModel("i18n").getResourceBundle().getText("VariantName") }) }),
@@ -446,10 +396,8 @@ sap.ui.define([
                             new sap.m.Column({ header: new sap.m.Label({ text: "" }) })
                         ]
                     });
-
                     oTable.setModel(oModel);
 
-                    // Bind items à tabela
                     oTable.bindItems({
                         path: "/xTQAxUSR_VARIANTS_DD",
                         template: new sap.m.ColumnListItem({
@@ -457,11 +405,11 @@ sap.ui.define([
                                 new sap.m.Text({ text: "{v_name}" }),
                                 new sap.m.CheckBox({
                                     enabled: {
-                                        path: 'variant_id',  // Nome da propriedade do modelo
+                                        path: 'variant_id',
                                         formatter: function (value) {
                                             if (value == "Main")
-                                                return false;  // Retornará false se "Main", caso contrário, retornará true
-                                        }  // Sua função formatter
+                                                return false;
+                                        }
                                     },
                                     selected: "{v_default}",
                                     select: function (oEvent) {
@@ -477,7 +425,7 @@ sap.ui.define([
                                                 oModel.refresh(true);
                                             },
                                             error: function (oError) {
-                                                // Erro durante a operação
+
                                             }
                                         });
                                     }
@@ -493,7 +441,7 @@ sap.ui.define([
                                 new sap.m.Button({
                                     icon: "sap-icon://decline",
                                     visible: {
-                                        path: 'v_name', // Nome da propriedade do modelo
+                                        path: 'v_name',
                                         formatter: function (variantName) {
                                             if (variantName == "Standard") {
                                                 return false;
@@ -506,10 +454,8 @@ sap.ui.define([
 
                                         oModel.remove(oContext.sPath, {
                                             success: function (oCreatedData) {
-                                                // Lidar com a remoção bem-sucedida
                                             },
                                             error: function (oError) {
-                                                // Lidar com erros durante a operação
                                             }
                                         });
                                     }
@@ -530,12 +476,10 @@ sap.ui.define([
                     });
                 }
 
-                // Abre o diálogo
                 this._oManageDialog.open();
             },
 
             onBeforeSaveVariant: function () {
-                // Criar o diálogo
                 var that = this;
                 var oVariantName = new sap.m.Input({
                     id: "inVariantName"
@@ -548,24 +492,19 @@ sap.ui.define([
                 var oDialog = new sap.m.Dialog({
                     title: this.getView().getModel("i18n").getResourceBundle().getText("SaveView"),
                     content: [
-                        // Criar SimpleForm
                         new sap.ui.layout.form.SimpleForm({
                             editable: true,
                             layout: "ResponsiveGridLayout",
                             content: [
-                                // Criar Label
                                 new sap.m.Label({
                                     text: this.getView().getModel("i18n").getResourceBundle().getText("View")
                                 }),
-                                // Criar Input
                                 oVariantName,
-                                // Criar Checkbox
                                 oCheckBox
                             ]
                         })
                     ],
                     buttons: [
-                        // Criar botão Save
                         new sap.m.Button({
                             text: this.getView().getModel("i18n").getResourceBundle().getText("Save"),
                             type: "Emphasized",
@@ -574,7 +513,6 @@ sap.ui.define([
                                 oDialog.destroy();
                             }
                         }),
-                        // Criar botão Cancel
                         new sap.m.Button({
                             text: this.getView().getModel("i18n").getResourceBundle().getText("Close"),
                             press: function () {
@@ -585,22 +523,17 @@ sap.ui.define([
                     ]
                 });
 
-                // Exibir o diálogo
                 oDialog.open();
-
             },
 
             onSaveVariant: function (VariantName, vDefault) {
-
-                var that = this;
-                var oModel = this.getModel("vModel");
-                var oEntry = {};
-                var oFilterBarContext = [];
-                debugger;
-                //NEW SAVE VARIANT FILTER VALUES
-                var oFilterBar = this.byId("smartFilterBarGroups");
-                var filterGroupItems = oFilterBar.getFilterGroupItems();
-                var activeFiltersArray = [];
+                var that = this,
+                    oModel = this.getModel("vModel"),
+                    oEntry = {},
+                    oFilterBarContext = [],
+                    oFilterBar = this.byId("smartFilterBarGroups"),
+                    filterGroupItems = oFilterBar.getFilterGroupItems(),
+                    activeFiltersArray = [];
 
                 filterGroupItems.forEach(function (item) {
                     if (item.mProperties.visibleInFilterBar) {
@@ -612,26 +545,21 @@ sap.ui.define([
                     }
                 });
 
-                var activeFiltersJSON = JSON.stringify(activeFiltersArray);
-                var activeFiltersBtoa = btoa(activeFiltersJSON);
-                this.getModel("Main").setProperty("/fbarBtoa", activeFiltersBtoa);
+                var activeFiltersJSON = JSON.stringify(activeFiltersArray),
+                    activeFiltersBtoa = btoa(activeFiltersJSON);
 
+                this.getModel("Main").setProperty("/fbarBtoa", activeFiltersBtoa);
                 var oFilterAvailable = JSON.parse(atob(this.getModel("Main").getProperty("/fbarBtoa")));
 
                 oFilterBar.getFilters().forEach(element => {
-                    var aFilters = element.aFilters;
-
-                    // Procura por um objeto correspondente em oFilterAvailable
-                    var oMatchingFilter = oFilterAvailable.find(fs => fs.name === aFilters[0]?.sPath);
+                    var aFilters = element.aFilters,
+                        oMatchingFilter = oFilterAvailable.find(fs => fs.name === aFilters[0]?.sPath);
 
                     if (oMatchingFilter) {
-                        // Atualiza o objeto correspondente com a propriedade aFilters
-                        // Se aFilters estiver vazio, define como uma string vazia
                         oMatchingFilter.aFilters = aFilters.length > 0 ? aFilters : " ";
 
                     }
                 });
-
 
                 oEntry.v_name = VariantName;
 
@@ -643,10 +571,9 @@ sap.ui.define([
                     oEntry.stable_settings = this.getModel("Main").getProperty("/SmartTableBtoa");
                 }
                 else {
-                    var oTable = sap.ui.getCore().byId("smartTableMaterials").getTable();
-                    var aColumnData = [];
-
-                    var aColumns = oTable.getColumns();
+                    var oTable = sap.ui.getCore().byId("smartTableMaterials").getTable(),
+                        aColumnData = [],
+                        aColumns = oTable.getColumns();
 
                     aColumns.forEach(function (oColumn) {
                         var lastIndex = oColumn.sId.lastIndexOf('-');
@@ -665,22 +592,19 @@ sap.ui.define([
                 oEntry.app_link = 'MAT_OVERVIEW';
                 oEntry.v_default = vDefault;
 
-                // Executa a operação CREATE
                 oModel.create("/xTQAxUSR_VARIANTS_DD", oEntry, {
                     success: function (oCreatedData) {
                         that.getModel("Main").setProperty("/selectedVariant", oCreatedData.variant_id);
                     },
                     error: function (oError) {
-                        // Erro durante a operação
+
                     }
                 });
             },
 
             onFilterChange: function (oEvent) {
-
-                //OBTER TODOS OS FILTOS E PREENCHER UM ARRAY COM OS FILTROS VISIVEIS E O NOME
-                var filterGroupItems = oEvent.oSource.getFilterGroupItems();
-                var activeFiltersArray = [];
+                var filterGroupItems = oEvent.oSource.getFilterGroupItems(),
+                    activeFiltersArray = [];
 
                 filterGroupItems.forEach(function (item) {
                     if (item.mProperties.visibleInFilterBar) {
@@ -692,15 +616,8 @@ sap.ui.define([
                     }
                 });
 
-                //ALTERAR O VALUE DO INPUT QUANDO HÁ ALTERAÇÕES
-                if (activeFiltersArray.length > 0) {
-                    var oInput = this.byId("variantInput");
-                    // oInput.setValue("* " + oInput.getValue().replace(/\*/g, '').trim().replace(/\s+/g, ' ')
-                    //     + " *");
-                }
-                // Agora activeFiltersArray contém as informações desejadas
-                var activeFiltersJSON = JSON.stringify(activeFiltersArray);
-                var activeFiltersBtoa = btoa(activeFiltersJSON);
+                var activeFiltersJSON = JSON.stringify(activeFiltersArray),
+                    activeFiltersBtoa = btoa(activeFiltersJSON);
                 this.getModel("Main").setProperty("/fbarBtoa", activeFiltersBtoa);
 
             },
